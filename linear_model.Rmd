@@ -2,7 +2,7 @@
 title: "linear model"
 author: "Xiaoyu Wu"
 date: "2023-11-28"
-output: html_document
+output: github_document
 ---
 
 ```{r setup}
@@ -32,20 +32,6 @@ cleaned_player_df = player_df  |>
 ```
 
 
-## Scatterplot for first Visualizing the Relationship between `Age` and `Min`
-```{r}
-fig = plot_ly(cleaned_player_df, x = ~Age, y = ~Min, type = 'scatter', mode = 'markers',
-               hoverinfo = 'text',
-               text = ~paste('Player:', Player))  # Hover text
-
-# Adding layout
-fig = fig %>% layout(title = 'Interactive Scatterplot of Age vs Minutes Played',
-                      xaxis = list(title = 'Age'),
-                      yaxis = list(title = 'Minutes Played'))
-
-# Show the plot
-fig
-```
 
 ## Perform Correlation Analysis 
 ```{r}
