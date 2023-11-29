@@ -5,26 +5,107 @@ date: "2023-11-28"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup}
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(modelr)
+library(purrr)
+library(tidyr)
 ```
 
-## R Markdown
+## Import the Data 
+```{r}
+file_path = "./PL_1819_data.xlsx"
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+player_df = read_excel(file_path, sheet = 4)
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+## Data Wrangling 
+```{r}
+cleaned_player_df = player_df  |> 
+ mutate(Age = as.numeric(as.character(Age)),
+ Min = as.numeric(as.character(Min)))  |> 
+ na.omit()
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+## Scatterplot for first Visualizing the Relationship between `Age` and `Min`
+```{r}
+fig = plot_ly(cleaned_player_df, x = ~Age, y = ~Min, type = 'scatter', mode = 'markers',
+               hoverinfo = 'text',
+               text = ~paste('Player:', Player))  # Hover text
+
+# Adding layout
+fig = fig %>% layout(title = 'Interactive Scatterplot of Age vs Minutes Played',
+                      xaxis = list(title = 'Age'),
+                      yaxis = list(title = 'Minutes Played'))
+
+# Show the plot
+fig
+```
+
+## Perform Correlation Analysis 
+```{r}
+correlation_result = cor.test(cleaned_player_df$Age, cleaned_player_df$Min)
+
+# Printing the results
+print(correlation_result)
+```
+
+#### Discussion 
+The Pearson correlation coefficient between Age (independent variable) and Minutes Played (dependent variable) is approximately 0.137, with a p-value of about 0.0019.
+
+This correlation coefficient suggests a slight positive association between Age and Minutes Played, meaning that as Age increases, there is a slight tendency for Minutes Played to also increase. However, the correlation is relatively weak.
+
+The p-value indicates that this association is statistically significant, assuming a conventional significance level (e.g., 0.05). This means that the observed association is unlikely to be due to random chance. 
+
+## Try to Transform Min into log(Min) for fitting linear model 
+```{r}
+cleaned_player_df$logMin = log(cleaned_player_df$Min)
+
+model = lm(logMin ~ Age, data = cleaned_player_df)
+
+summary(model)
+
+# Optional: To visualize the model, you can create a scatterplot with the regression line
+ggplot(cleaned_player_df, aes(x = Age, y = logMin)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  ggtitle("Scatterplot of Age vs log(Min) with Linear Model") +
+  xlab("Age") +
+  ylab("log(Minutes Played)") +
+  theme_minimal()
+```
+
+## Cross Validation
+```{r}
+cv_df = 
+  crossv_mc(cleaned_player_df, 100)
+
+cv_df =
+  cv_df |> 
+  mutate(
+    train = map(train, as_tibble),
+    test = map(test, as_tibble))
+
+cv_df = 
+  cv_df |> 
+  mutate(
+    model  = map(train, \(cleaned_player_df) lm(logMin ~ Age, data = cleaned_player_df))
+    ) |> 
+  mutate(
+    rmse_model = map2_dbl(model, test, \(model, cleaned_player_df) rmse(model = model, data = cleaned_player_df)))
+
+cv_df |> 
+  select(starts_with("rmse")) |> 
+  pivot_longer(
+    everything(),
+    names_to = "model", 
+    values_to = "rmse",
+    names_prefix = "rmse_") |> 
+  ggplot(aes(x = model, y = rmse)) + geom_violin()
+```
+
