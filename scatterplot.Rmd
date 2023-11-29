@@ -1,0 +1,46 @@
+---
+title: "scatterplot"
+author: "Xiaoyu Wu"
+date: "2023-11-29"
+output: html_document
+---
+
+```{r setup}
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(modelr)
+library(purrr)
+library(tidyr)
+```
+
+## Import the Data 
+```{r}
+file_path = "./PL_1819_data.xlsx"
+
+
+player_df = read_excel(file_path, sheet = 4)
+```
+
+## Data Wrangling 
+```{r}
+cleaned_player_df = player_df  |> 
+ mutate(Age = as.numeric(as.character(Age)),
+ Min = as.numeric(as.character(Min)))  |> 
+ na.omit()
+```
+## Scatterplot for first Visualizing the Relationship between `Age` and `Min`
+```{r}
+fig = plot_ly(cleaned_player_df, x = ~Age, y = ~Min, type = 'scatter', mode = 'markers',
+               hoverinfo = 'text',
+               text = ~paste('Player:', Player))  # Hover text
+
+# Adding layout
+fig = fig %>% layout(title = 'Interactive Scatterplot of Age vs Minutes Played',
+                      xaxis = list(title = 'Age'),
+                      yaxis = list(title = 'Minutes Played'))
+
+# Show the plot
+fig
+```

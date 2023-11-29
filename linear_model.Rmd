@@ -32,7 +32,6 @@ cleaned_player_df = player_df  |>
 ```
 
 
-
 ## Perform Correlation Analysis 
 ```{r}
 correlation_result = cor.test(cleaned_player_df$Age, cleaned_player_df$Min)
